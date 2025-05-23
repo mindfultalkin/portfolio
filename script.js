@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let isBackForwardNavigation = false;
     
     // We need to track direction of browser navigation
-    let previousStateIndex = 0;
+    // Remove unused variable
     
     // Function to add to history
     function addToHistory(state) {
@@ -689,9 +689,62 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                 </div>`
         },
+        "case-studies": {
+            title: "Case Studies",
+            text: `
+                <div class="metrics-container">
+                    <div class="metric-box" data-page="content/case-studies/Case study_ Creating a Digital Twin to Explain Use Cases.pdf">
+                        <div class="metric-image">
+                            <img src="./content/case-studies/img/digital-twin.jpg" alt="Digital Twin Case Study">
+                        </div>
+                        <h3>Digital Twin Case Study</h3>
+                        <div class="metric-content">
+                            <p>Creating a Digital Twin to Explain Complex Use Cases and Enhance Understanding</p>
+                        </div>
+                    </div>
+                    <div class="metric-box" data-page="content/case-studies/Case study_ Self-Service Knowledge Base for Increased Product Adoption.pdf">
+                        <div class="metric-image">
+                            <img src="./content/case-studies/img/self-service.jpg" alt="Self-Service Knowledge Base">
+                        </div>
+                        <h3>Self-Service Knowledge Base</h3>
+                        <div class="metric-content">
+                            <p>Implementing a Self-Service Knowledge Base to Drive Product Adoption</p>
+                        </div>
+                    </div>
+                    <div class="metric-box" data-page="content/case-studies/Case study_ System Architecture Document for Embedded Systems.pdf">
+                        <div class="metric-image">
+                            <img src="./content/case-studies/img/system-architecture.jpg" alt="System Architecture">
+                        </div>
+                        <h3>System Architecture Document</h3>
+                        <div class="metric-content">
+                            <p>Documenting System Architecture for Complex Embedded Systems</p>
+                        </div>
+                    </div>
+                </div>`
+        },
+        // Function to load and render PDF
+        loadPDF(url, container) {
+            pdfjsLib.getDocument(url).promise.then(pdf => {
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    pdf.getPage(i).then(page => {
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        container.appendChild(canvas);
+                        page.render({ canvasContext: context, viewport: viewport });
+                    });
+                }
+            }).catch(error => {
+                console.error('Error loading PDF:', error);
+                container.innerHTML = '<p>Error loading PDF. Please try again later.</p>';
+            });
+        },
     };
 
-    async function loadContent(pageUrl, skipHistory = false) {
+    async function loadContent(pageUrl) {
         try {
             // Get the clicked box's heading
             const clickedBox = document.querySelector('.metric-box[data-page="' + pageUrl + '"]');
@@ -705,6 +758,150 @@ document.addEventListener("DOMContentLoaded", function () {
             const contentTitle = document.getElementById('content-title');
             contentTitle.textContent = `${sectionTitle} - ${boxHeading}`;
 
+            // Check if this is a PDF file
+            if (pageUrl.endsWith('.pdf')) {
+                // Create a wrapper for the PDF content
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'content-page pdf-page';
+                
+                // Create PDF container
+                const pdfContainer = document.createElement('div');
+                pdfContainer.id = 'pdf-content';
+                pdfContainer.className = 'pdf-container';
+                contentWrapper.appendChild(pdfContainer);
+
+                // Add PDF.js script if not already loaded
+                if (!window.pdfjsLib) {
+                    const pdfScript = document.createElement('script');
+                    pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+                    document.head.appendChild(pdfScript);
+                    
+                    pdfScript.onload = () => {
+                        loadPDF(pageUrl, pdfContainer);
+                    };
+                } else {
+                    loadPDF(pageUrl, pdfContainer);
+                }
+
+                // Replace content area with the new wrapper
+                const contentArea = document.getElementById('content-area');
+                contentArea.innerHTML = '';
+                contentArea.appendChild(contentWrapper);
+
+                // Add PDF-specific styles
+                const pdfStyles = document.createElement('style');
+                pdfStyles.textContent = `
+                    .pdf-container {
+                        padding: 5px;
+                        min-height: 500px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 20px;
+                    }
+                    .pdf-container canvas {
+                        max-width: 100%;
+                        background: white;
+                    }
+                `;
+                document.head.appendChild(pdfStyles);
+                return;
+            }
+            
+            // Check if this is a PDF file
+            if (pageUrl.endsWith('.pdf')) {
+                // Create a wrapper for the PDF content
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'content-page pdf-page';
+                
+                // Create PDF container
+                const pdfContainer = document.createElement('div');
+                pdfContainer.id = 'pdf-content';
+                pdfContainer.className = 'pdf-container';
+                contentWrapper.appendChild(pdfContainer);
+
+                // Add PDF.js script if not already loaded
+                if (!window.pdfjsLib) {
+                    const pdfScript = document.createElement('script');
+                    pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+                    document.head.appendChild(pdfScript);
+                    
+                    pdfScript.onload = () => {
+                        // Initialize PDF.js
+                        pdfjsLib.getDocument(pageUrl).promise.then(pdf => {
+                            for (let i = 1; i <= pdf.numPages; i++) {
+                                pdf.getPage(i).then(page => {
+                                    const viewport = page.getViewport({ scale: 1.5 });
+                                    const canvas = document.createElement('canvas');
+                                    const context = canvas.getContext('2d');
+                                    canvas.height = viewport.height;
+                                    canvas.width = viewport.width;
+
+                                    pdfContainer.appendChild(canvas);
+                                    page.render({ canvasContext: context, viewport: viewport });
+                                });
+                            }
+                        }).catch(error => {
+                            console.error('Error loading PDF:', error);
+                            pdfContainer.innerHTML = '<p>Error loading PDF. Please try again later.</p>';
+                        });
+                    };
+                } else {
+                    // PDF.js already loaded
+                    pdfjsLib.getDocument(pageUrl).promise.then(pdf => {
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            pdf.getPage(i).then(page => {
+                                const viewport = page.getViewport({ scale: 1.5 });
+                                const canvas = document.createElement('canvas');
+                                const context = canvas.getContext('2d');
+                                canvas.height = viewport.height;
+                                canvas.width = viewport.width;
+
+                                pdfContainer.appendChild(canvas);
+                                page.render({ canvasContext: context, viewport: viewport });
+                            });
+                        }
+                    }).catch(error => {
+                        console.error('Error loading PDF:', error);
+                        pdfContainer.innerHTML = '<p>Error loading PDF. Please try again later.</p>';
+                    });
+                }
+
+                // Add PDF-specific styles
+                const pdfStyles = document.createElement('style');
+                pdfStyles.textContent = `
+                    .pdf-container {
+                        padding: 20px;
+                        background: #f5f5f5;
+                        min-height: 500px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 20px;
+                        overflow-y: auto;
+                        max-height: calc(100vh - 100px);
+                    }
+                    .pdf-container canvas {
+                        max-width: 100%;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                        background: white;
+                    }
+                `;
+                document.head.appendChild(pdfStyles);
+
+                // Replace content area with the new wrapper
+                const contentArea = document.getElementById('content-area');
+                contentArea.innerHTML = '';
+                contentArea.appendChild(contentWrapper);
+                return;
+            }
+
+            // Check if this is a PDF file
+            if (pageUrl.endsWith('.pdf')) {
+                handlePDFViewing(pageUrl);
+                return;
+            }
+            
             // Check if this is a video file
             if (pageUrl.endsWith('.mp4')) {
                 // Create a wrapper for the video content
@@ -1209,7 +1406,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function updateContent(key, skipHistory = false) {
+    function updateContent(key) {
         // Clear any existing content and styles
         const contentArea = document.getElementById('content-area');
         const contentTitle = document.getElementById('content-title');
@@ -1308,6 +1505,27 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Function to load and render PDF
+    function loadPDF(url, container) {
+        pdfjsLib.getDocument(url).promise.then(pdf => {
+            for (let i = 1; i <= pdf.numPages; i++) {
+                pdf.getPage(i).then(page => {
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    container.appendChild(canvas);
+                    page.render({ canvasContext: context, viewport: viewport });
+                });
+            }
+        }).catch(error => {
+            console.error('Error loading PDF:', error);
+            container.innerHTML = '<p>Error loading PDF. Please try again later.</p>';
+        });
+    }
+
     // Handle window resize
     window.addEventListener("resize", () => {
         if (window.innerWidth > 768) {
@@ -1352,7 +1570,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         const boxes = document.querySelectorAll('.metric-box');
                         let pageFound = false;
                         
-                        boxes.forEach(box => {
+                        boxes.forEach((box) => {
                             const boxUrl = box.getAttribute('data-page');
                             if (boxUrl && boxUrl.includes(page)) {
                                 // Found the matching box, load its content
@@ -1508,7 +1726,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Manual navigation for testing from console
-    window.navigate = {
+    // @ts-ignore
+    window.navigationDebug = {
         forward: function() {
             history.forward();
             return "Moving forward";
